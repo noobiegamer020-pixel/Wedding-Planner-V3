@@ -1,0 +1,71 @@
+name: Build APK
+
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      KS_FILE: signing/wedding-planner.keystore
+      KEYSTORE_B64: ${{ secrets.KEYSTORE_BASE64 }}
+      KS_PASS: ${{ secrets.KEYSTORE_PASSWORD || '20ad3hHS5HbtdsjTegpn' }}
+      KS_ALIAS: ${{ secrets.KEY_ALIAS || 'weddingplanner' }}
+      KEY_PASS: ${{ secrets.KEY_PASSWORD || secrets.KEYSTORE_PASSWORD || '20ad3hHS5HbtdsjTegpn' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Use your own keystore (only if you added the secret)
+        if: ${{ env.KEYSTORE_B64 != '' }}
+        run: |
+          echo "$KEYSTORE_B64" | base64 -d > signing/custom.keystore
+          echo "KS_FILE=signing/custom.keystore" >> "$GITHUB_ENV"
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Create Android project
+        run: npx cap add android
+
+      - name: App icon (optional, only if assets/icon-only.png exists)
+        if: ${{ hashFiles('assets/icon-only.png') != '' }}
+        continue-on-error: true
+        run: npx --yes @capacitor/assets generate --android
+
+      - name: Patch permissions and version
+        run: node scripts/patch-android.mjs
+        env:
+          RUN_NUMBER: ${{ github.run_number }}
+
+      - name: Copy web files into the app
+        run: npx cap sync android
+
+      - name: Build release APK
+        working-directory: android
+        run: ./gradlew assembleRelease --no-daemon
+
+      - name: Align and sign
+        run: |
+          BT=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)
+          UNSIGNED=$(ls android/app/build/outputs/apk/release/*.apk | head -1)
+          "$BT/zipalign" -p -f 4 "$UNSIGNED" aligned.apk
+          "$BT/apksigner" sign --ks "$KS_FILE" --ks-key-alias "$KS_ALIAS" \
+            --ks-pass "pass:$KS_PASS" --key-pass "pass:$KEY_PASS" \
+            --out WeddingPlanner.apk aligned.apk
+          "$BT/apksigner" verify --print-certs WeddingPlanner.apk | head -5
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: WeddingPlanner-APK
+          path: WeddingPlanner.apk
