@@ -1,0 +1,9 @@
+{
+  "appId": "com.mizou.weddingplanner",
+  "appName": "Wedding Planner",
+  "webDir": "www",
+  "server": { "androidScheme": "https" },
+  "plugins": {
+    "SplashScreen": { "launchShowDuration": 600, "backgroundColor": "#8e3a74" }
+  }
+}
