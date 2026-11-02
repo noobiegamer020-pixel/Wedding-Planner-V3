@@ -35,11 +35,12 @@ Because the password is in the repo, **keep the repo private**. For your own key
 **Back up this keystore.** If you lose it you can no longer update installed apps.
 
 ## Optional
-- App icon: add `assets/icon-only.png` (1024x1024). The build creates the icons.
+- App icon: already included (cake with the couple and a heart). Ready-made sizes are in `icons/res`, the 1024 px originals in `assets/`. To change it, replace those files.
 - Font: put `nunito.woff2` in `www/fonts/` (the app also loads the font online).
 - App name and id: `capacitor.config.json`.
 
 ## What this build includes
+Your new app icon (adaptive + round + old-style) and a matching splash screen, installed automatically by `scripts/patch-android.mjs`.
 Capacitor 6 with the plugins your app uses: App, Filesystem, Haptics, Local Notifications (loan reminders), Preferences, Share, Splash Screen, Status Bar. The build script adds the notification and storage permissions.
 
 ## Not tested

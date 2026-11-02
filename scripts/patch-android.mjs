@@ -26,4 +26,19 @@ let g = fs.readFileSync(gp, "utf8");
 g = g.replace(/versionCode\s+\d+/, `versionCode ${run}`)
      .replace(/versionName\s+"[^"]*"/, `versionName "1.0.${run}"`);
 fs.writeFileSync(gp, g);
+// ---- app icon (adaptive + legacy) and splash screen ----
+const res = "android/app/src/main/res";
+if (fs.existsSync("icons/res")) {
+  fs.cpSync("icons/res", res, { recursive: true, force: true });
+  console.log("Installed launcher icons");
+}
+if (fs.existsSync("icons/splash")) {
+  const walk = (dir) => fs.readdirSync(dir, { withFileTypes: true }).flatMap((e) =>
+    e.isDirectory() ? walk(`${dir}/${e.name}`) : [`${dir}/${e.name}`]);
+  for (const f of walk(res).filter((f) => f.endsWith("/splash.png"))) {
+    const land = f.includes("land");
+    fs.copyFileSync(land ? "icons/splash/splash-land.png" : "icons/splash/splash-port.png", f);
+  }
+  console.log("Installed splash screen");
+}
 console.log("Patched manifest + version (build " + run + ")");
